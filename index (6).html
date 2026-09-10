@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>St Edward Lubaga — Food Store Stock Register</title>
+<style>
+  :root{
+    --ink:#23241F;
+    --ink-soft:#5B5C52;
+    --paper:#F6F4EA;
+    --paper-raised:#FFFFFF;
+    --line:#DDD6C0;
+    --green-deep:#24402F;
+    --green-mid:#3F7350;
+    --green-pale:#E4EEE4;
+    --mustard:#C89B3C;
+    --mustard-pale:#F7EBD1;
+    --red:#A63D33;
+    --red-pale:#F5DEDA;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    font-size:15px;
+    line-height:1.5;
+  }
+  h1,h2,h3{
+    font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;
+    font-weight:600;
+    margin:0;
+    color:var(--green-deep);
+  }
+  .app{max-width:920px;margin:0 auto;padding:0 20px 60px;}
+
+  /* header */
+  .masthead{
+    border-bottom:3px solid var(--green-deep);
+    padding:28px 0 16px;
+    margin-bottom:0;
+  }
+  .masthead .eyebrow{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    letter-spacing:.02em;
+    margin-bottom:4px;
+  }
+  .masthead h1{font-size:26px;letter-spacing:.01em;}
+  .masthead .sub{color:var(--ink-soft);font-size:14px;margin-top:4px;}
+
+  /* nav */
+  .tabs{
+    display:flex;
+    gap:2px;
+    margin:22px 0 24px;
+    border-bottom:1px solid var(--line);
+    overflow-x:auto;
+  }
+  .tab{
+    font-family:Georgia,serif;
+    font-size:14.5px;
+    padding:10px 18px;
+    cursor:pointer;
+    color:var(--ink-soft);
+    border-bottom:2px solid transparent;
+    white-space:nowrap;
+    user-select:none;
+  }
+  .tab:hover{color:var(--green-deep);}
+  .tab.active{color:var(--green-deep);border-bottom-color:var(--mustard);font-weight:600;}
+
+  .panel{display:none;}
+  .panel.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  /* cards */
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px;
+    margin-bottom:20px;
+  }
+  .card h2{font-size:17px;margin-bottom:4px;}
+  .card .hint{color:var(--ink-soft);font-size:13px;margin-bottom:16px;}
+
+  /* summary strip */
+  .summary-strip{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+    margin-bottom:20px;
+  }
+  .stat{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-left:4px solid var(--green-mid);
+    border-radius:var(--radius);
+    padding:14px 16px;
+  }
+  .stat.alert{border-left-color:var(--red);}
+  .stat .num{font-family:Georgia,serif;font-size:26px;color:var(--green-deep);}
+  .stat.alert .num{color:var(--red);}
+  .stat .label{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+
+  /* forms */
+  form{display:grid;gap:12px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px;}
+  input,select,textarea{
+    width:100%;
+    font-family:inherit;
+    font-size:14.5px;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:var(--paper);
+    color:var(--ink);
+  }
+  input:focus,select:focus,textarea:focus{
+    outline:2px solid var(--mustard);
+    outline-offset:0;
+    border-color:var(--mustard);
+  }
+  button{
+    font-family:Georgia,serif;
+    font-size:14.5px;
+    padding:10px 18px;
+    background:var(--green-deep);
+    color:#fff;
+    border:none;
+    border-radius:var(--radius);
+    cursor:pointer;
+    width:max-content;
+  }
+  button:hover{background:#1a3123;}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  button.secondary{
+    background:transparent;
+    color:var(--red);
+    border:1px solid var(--red);
+    padding:5px 10px;
+    font-size:12.5px;
+  }
+  button.secondary:hover{background:var(--red-pale);}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{
+    text-align:left;
+    font-weight:600;
+    color:var(--ink-soft);
+    font-size:12px;
+    padding:8px 10px;
+    border-bottom:1px solid var(--line);
+  }
+  td{padding:9px 10px;border-bottom:1px solid var(--line);}
+  tr:last-child td{border-bottom:none;}
+  .badge{
+    display:inline-block;
+    padding:2px 9px;
+    border-radius:20px;
+    font-size:11.5px;
+    font-weight:600;
+  }
+  .badge.ok{background:var(--green-pale);color:var(--green-mid);}
+  .badge.reorder{background:var(--red-pale);color:var(--red);}
+  .empty{color:var(--ink-soft);font-size:13.5px;padding:14px 0;}
+  .table-wrap{overflow-x:auto;}
+
+  .note{
+    background:var(--mustard-pale);
+    border:1px solid var(--mustard);
+    border-radius:var(--radius);
+    padding:12px 14px;
+    font-size:13px;
+    color:#5C4A1D;
+    margin-bottom:20px;
+  }
+
+  .status-msg{font-size:13px;color:var(--green-mid);min-height:18px;}
+  .status-msg.error{color:var(--red);}
+
+  /* login screen */
+  .login-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--paper);
+    padding:20px;
+  }
+  .login-card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:32px;
+    max-width:360px;
+    width:100%;
+  }
+  .login-card .eyebrow{font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;}
+  .login-card h1{font-size:21px;}
+  .login-card form{margin-top:4px;}
+  .login-hint{font-size:12.5px;color:var(--ink-soft);margin-top:16px;text-align:center;}
+
+  @media (max-width:640px){
+    .row2,.row3,.summary-strip{grid-template-columns:1fr;}
+  }
+</style>
+
+<!-- Firebase (shared live storage) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="eyebrow">Food Store</div>
+    <h1>St Edward High School Lubaga</h1>
+    <div class="sub" style="margin-bottom:20px;">Sign in to access the stock register</div>
+    <form id="login-form">
+      <div>
+        <label for="login-email">Email</label>
+        <input id="login-email" type="email" required autocomplete="username">
+      </div>
+      <div>
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" required autocomplete="current-password">
+      </div>
+      <div><button type="submit">Sign in</button></div>
+      <div style="text-align:center;margin-top:4px;">
+        <button type="button" id="forgot-password-btn"
+          style="background:transparent;color:var(--green-mid);padding:4px 0;font-family:inherit;font-size:12.5px;">
+          Forgot password?
+        </button>
+      </div>
+      <div class="status-msg error" id="login-status"></div>
+    </form>
+    <div class="login-hint">Don't have an account? Ask your IT technician to create one for you.</div>
+  </div>
+</div>
+
+<div class="app" id="app-content" style="display:none;">
+  <div style="display:flex; justify-content:flex-end; padding-top:12px;">
+    <button class="secondary" id="signout-btn" type="button">Sign out</button>
+  </div>
+
+  <div class="masthead">
+    <div class="eyebrow">Food Store</div>
+    <h1>St Edward High School Lubaga</h1>
+    <div class="sub">Stock Register — track what comes in and what goes out</div>
+  </div>
+
+  <div class="note" id="shared-note">
+    This register syncs live across every device through Firestore — whoever opens this link sees and edits the same stock records in real time.
+  </div>
+
+  <nav class="tabs">
+    <div class="tab active" data-tab="dashboard">Dashboard</div>
+    <div class="tab" data-tab="items">Items</div>
+    <div class="tab" data-tab="stockin">Stock In</div>
+    <div class="tab" data-tab="stockout">Stock Out</div>
+    <div class="tab" data-tab="reports">Reports</div>
+    <div class="tab" data-tab="users" id="users-tab" style="display:none;">Users</div>
+  </nav>
+
+  <!-- REPORTS -->
+  <section class="panel" id="panel-reports">
+    <div class="card">
+      <h2>Reports & Excel Export</h2>
+      <div class="hint">Export the current Food Store information to an Excel workbook with separate sheets for inventory, stock in, stock out, users and summary.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button type="button" id="export-excel-btn">Export All Reports to Excel</button>
+      </div>
+      <div class="status-msg" id="report-status"></div>
+    </div>
+    <div class="card">
+      <h2>Report contents</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Sheet</th><th>Information included</th></tr></thead>
+          <tbody>
+            <tr><td>Summary</td><td>Total items, stock in, stock out, current balances, low-stock count and report date.</td></tr>
+            <tr><td>Inventory</td><td>Item, unit, reorder level, total received, total issued, current balance and status.</td></tr>
+            <tr><td>Stock In</td><td>Date, item, quantity, supplier, received by and notes.</td></tr>
+            <tr><td>Stock Out</td><td>Date, item, quantity, issued to, issued by and notes.</td></tr>
+            <tr><td>Users</td><td>Email and role information available to the application.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN / USER MANAGEMENT -->
+  <section class="panel" id="panel-users">
+    <div class="card">
+      <h2>User management</h2>
+      <div class="hint">Super Admins can create application users and assign roles.</div>
+      <form id="user-form">
+        <div class="row2">
+          <div>
+            <label for="user-email">User email</label>
+            <input id="user-email" type="email" required placeholder="staff@example.com">
+          </div>
+          <div>
+            <label for="user-password">Temporary password</label>
+            <input id="user-password" type="password" minlength="6" required placeholder="At least 6 characters">
+          </div>
+        </div>
+        <div>
+          <label for="user-role">Role</label>
+          <select id="user-role" required>
+            <option value="staff">Staff</option>
+            <option value="viewer">Viewer</option>
+            <option value="admin">Super Admin</option>
+          </select>
+        </div>
+        <div><button type="submit">Create user</button></div>
+        <div class="status-msg" id="user-status"></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Current user</h2>
+      <div id="current-user-info" class="hint"></div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="panel active" id="panel-dashboard">
+    <div class="summary-strip" id="summary-strip"></div>
+    <div class="card">
+      <h2>Current balance by item</h2>
+      <div class="hint">Updates automatically from Stock In and Stock Out entries.</div>
+      <div class="table-wrap">
+        <table id="balance-table">
+          <thead><tr><th>Item</th><th>Unit</th><th>In</th><th>Out</th><th>Balance</th><th>Reorder at</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ITEMS -->
+  <section class="panel" id="panel-items">
+    <div class="card">
+      <h2>Add an item</h2>
+      <div class="hint">Add every food-store item once here, with a reorder level (minimum quantity before restocking).</div>
+      <form id="item-form">
+        <div class="row3">
+          <div>
+            <label for="item-name">Item name</label>
+            <input id="item-name" required placeholder="e.g. Rice">
+          </div>
+          <div>
+            <label for="item-unit">Unit</label>
+            <input id="item-unit" required placeholder="e.g. kg, litre, bag">
+          </div>
+          <div>
+            <label for="item-reorder">Reorder level</label>
+            <input id="item-reorder" type="number" min="0" step="any" required placeholder="e.g. 50">
+          </div>
+        </div>
+        <div>
+          <button type="submit">Add item</button>
+        </div>
+        <div class="status-msg" id="item-status"></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>All items</h2>
+      <div class="table-wrap">
+        <table id="items-table">
+          <thead><tr><th>Item</th><th>Unit</th><th>Reorder level</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- STOCK IN -->
+  <section class="panel" id="panel-stockin">
+    <div class="card">
+      <h2>Record a delivery</h2>
+      <div class="hint">Log every delivery or purchase received into the store.</div>
+      <form id="stockin-form">
+        <div class="row2">
+          <div>
+            <label for="in-date">Date</label>
+            <input id="in-date" type="date" required>
+          </div>
+          <div>
+            <label for="in-item">Item</label>
+            <select id="in-item" required></select>
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label for="in-qty">Quantity received</label>
+            <input id="in-qty" type="number" min="0" step="any" required>
+          </div>
+          <div>
+            <label for="in-supplier">Supplier</label>
+            <input id="in-supplier" placeholder="e.g. Nakasero Market">
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label for="in-by">Received by</label>
+            <input id="in-by" placeholder="e.g. your name">
+          </div>
+          <div>
+            <label for="in-notes">Notes</label>
+            <input id="in-notes" placeholder="optional">
+          </div>
+        </div>
+        <div><button type="submit">Save delivery</button></div>
+        <div class="status-msg" id="stockin-status"></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Recent deliveries</h2>
+      <div class="table-wrap">
+        <table id="stockin-table">
+          <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Supplier</th><th>Received by</th><th>Notes</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- STOCK OUT -->
+  <section class="panel" id="panel-stockout">
+    <div class="card">
+      <h2>Record stock issued</h2>
+      <div class="hint">Log every item issued out of the store, e.g. to the kitchen for meal preparation.</div>
+      <form id="stockout-form">
+        <div class="row2">
+          <div>
+            <label for="out-date">Date</label>
+            <input id="out-date" type="date" required>
+          </div>
+          <div>
+            <label for="out-item">Item</label>
+            <select id="out-item" required></select>
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label for="out-qty">Quantity issued</label>
+            <input id="out-qty" type="number" min="0" step="any" required>
+          </div>
+          <div>
+            <label for="out-to">Issued to</label>
+            <input id="out-to" placeholder="e.g. Kitchen">
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label for="out-by">Issued by</label>
+            <input id="out-by" placeholder="e.g. your name">
+          </div>
+          <div>
+            <label for="out-notes">Notes</label>
+            <input id="out-notes" placeholder="optional">
+          </div>
+        </div>
+        <div><button type="submit">Save issue</button></div>
+        <div class="status-msg" id="stockout-status"></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Recent issues</h2>
+      <div class="table-wrap">
+        <table id="stockout-table">
+          <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Issued to</th><th>Issued by</th><th>Notes</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer style="text-align:center;color:var(--ink-soft);font-size:12.5px;padding:18px 0 0;border-top:1px solid var(--line);margin-top:30px;">© 2026 Marvin Marvel. All Rights Reserved.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ============================================================
+  // PASTE YOUR FIREBASE CONFIG HERE (from Firebase console →
+  // Project settings → Your apps → the firebaseConfig object)
+  // ============================================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyCO8JYTdnyZJVBSKGVh8ErEwX1ab4u63w4",
+    authDomain: "sted-food-stock-tracker.firebaseapp.com",
+    projectId: "sted-food-stock-tracker",
+    storageBucket: "sted-food-stock-tracker.firebasestorage.app",
+    messagingSenderId: "76089383749",
+    appId: "1:76089383749:web:9ab325ac4af6aa3d0d7c2c"
+  };
+  // ============================================================
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+  const docRef = db.collection("store").doc("data");
+  const rolesRef = db.collection("users");
+  let saving = false; // avoids feedback loops while we write
+  let currentRole = "viewer";
+
+  // IMPORTANT: The first Super Admin must be created manually in Firestore.
+  // Create users/{UID} with: { email: "...", role: "admin" }.
+  // After that, Super Admins can create accounts from the Users tab.
+  async function loadCurrentRole(user){
+    currentRole = "viewer";
+    if(!user) return;
+    try{
+      const snap = await rolesRef.doc(user.uid).get();
+      if(snap.exists && snap.data().role){
+        currentRole = snap.data().role;
+      }
+    }catch(err){
+      console.error("Could not load user role:", err);
+    }
+  }
+
+  function applyPermissions(){
+    const usersTab = document.getElementById("users-tab");
+    usersTab.style.display = currentRole === "admin" ? "block" : "none";
+
+    // Viewers cannot modify stock. Staffs can modify stock but not users.
+    const canEdit = currentRole === "admin" || currentRole === "staff";
+    document.querySelectorAll("#item-form button, #stockin-form button, #stockout-form button")
+      .forEach(btn => btn.disabled = !canEdit);
+
+    document.querySelectorAll("[data-remove-item]").forEach(btn => {
+      btn.style.display = currentRole === "admin" ? "inline-block" : "none";
+    });
+
+    const info = document.getElementById("current-user-info");
+    const user = auth.currentUser;
+    if(user){
+      info.textContent = `${user.email} — ${currentRole.toUpperCase()}`;
+    }
+  }
+
+  const STORAGE_KEY = "st-edward-lubaga-food-store-v1";
+
+  let state = {
+    items: [
+      { id: cryptoId(), name: "Rice", unit: "kg", reorder: 50 },
+      { id: cryptoId(), name: "Posho (Maize Flour)", unit: "kg", reorder: 100 },
+      { id: cryptoId(), name: "Beans", unit: "kg", reorder: 50 },
+      { id: cryptoId(), name: "Cooking Oil", unit: "litre", reorder: 20 },
+      { id: cryptoId(), name: "Sugar", unit: "kg", reorder: 30 },
+    ],
+    stockIn: [],
+    stockOut: []
+  };
+
+  function cryptoId(){
+    return Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+  }
+
+  async function loadState(){
+    if(!auth.currentUser){
+      return;
+    }
+    try{
+      const snap = await docRef.get();
+      if(snap.exists){
+        const parsed = snap.data();
+        if(parsed && Array.isArray(parsed.items)){
+          state = parsed;
+        }
+      } else {
+        // first time ever — seed Firestore with the starter items
+        await docRef.set(state);
+      }
+    }catch(e){
+      console.error("Could not load from Firestore — check your firebaseConfig values:", e);
+      showGlobalError();
+    }
+    renderAll();
+
+    // live sync: re-render whenever ANY device changes the data
+    docRef.onSnapshot((snap)=>{
+      if(saving) return; // this change came from our own save below
+      if(snap.exists){
+        const parsed = snap.data();
+        if(parsed && Array.isArray(parsed.items)){
+          state = parsed;
+          renderAll();
+        }
+      }
+    });
+  }
+
+  async function saveState(){
+    if(!auth.currentUser){
+      showGlobalError();
+      return;
+    }
+    if(currentRole !== "admin" && currentRole !== "staff"){
+      console.warn("Viewer attempted to modify stock.");
+      return;
+    }
+    try{
+      saving = true;
+      await docRef.set(state);
+    }catch(e){
+      console.error("Could not save to Firestore — check your firebaseConfig values:", e);
+      showGlobalError();
+    }finally{
+      saving = false;
+    }
+  }
+
+  function showGlobalError(){
+    const el = document.getElementById("shared-note");
+    el.textContent = "Couldn't connect to the shared database — check that firebaseConfig is filled in correctly and Firestore is enabled.";
+    el.style.background = "var(--red-pale)";
+    el.style.borderColor = "var(--red)";
+    el.style.color = "var(--red)";
+  }
+
+  // ---------- Tabs ----------
+  document.querySelectorAll(".tab").forEach(tab=>{
+    tab.addEventListener("click", ()=>{
+      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById("panel-"+tab.dataset.tab).classList.add("active");
+    });
+  });
+
+  // ---------- Derived data ----------
+  function balanceFor(itemName){
+    const inTotal = state.stockIn.filter(r=>r.item===itemName).reduce((s,r)=>s+Number(r.qty||0),0);
+    const outTotal = state.stockOut.filter(r=>r.item===itemName).reduce((s,r)=>s+Number(r.qty||0),0);
+    return { inTotal, outTotal, balance: inTotal - outTotal };
+  }
+
+  // ---------- Rendering ----------
+  function renderAll(){
+    renderSummary();
+    renderBalanceTable();
+    renderItemsTable();
+    renderItemSelects();
+    renderStockInTable();
+    renderStockOutTable();
+  }
+
+  function renderSummary(){
+    const el = document.getElementById("summary-strip");
+    const totalItems = state.items.length;
+    let reorderCount = 0;
+    state.items.forEach(it=>{
+      const { balance } = balanceFor(it.name);
+      if(balance <= Number(it.reorder)) reorderCount++;
+    });
+    const totalMovements = state.stockIn.length + state.stockOut.length;
+    el.innerHTML = `
+      <div class="stat">
+        <div class="num">${totalItems}</div>
+        <div class="label">Items tracked</div>
+      </div>
+      <div class="stat ${reorderCount>0?'alert':''}">
+        <div class="num">${reorderCount}</div>
+        <div class="label">Need restocking</div>
+      </div>
+      <div class="stat">
+        <div class="num">${totalMovements}</div>
+        <div class="label">Logged movements</div>
+      </div>
+    `;
+  }
+
+  function renderBalanceTable(){
+    const tbody = document.querySelector("#balance-table tbody");
+    if(state.items.length===0){
+      tbody.innerHTML = `<tr><td colspan="7" class="empty">No items yet — add one in the Items tab.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = state.items.map(it=>{
+      const { inTotal, outTotal, balance } = balanceFor(it.name);
+      const low = balance <= Number(it.reorder);
+      return `<tr>
+        <td>${escapeHtml(it.name)}</td>
+        <td>${escapeHtml(it.unit)}</td>
+        <td>${inTotal}</td>
+        <td>${outTotal}</td>
+        <td>${balance}</td>
+        <td>${it.reorder}</td>
+        <td><span class="badge ${low?'reorder':'ok'}">${low?'Reorder':'OK'}</span></td>
+      </tr>`;
+    }).join("");
+  }
+
+  function renderItemsTable(){
+    const tbody = document.querySelector("#items-table tbody");
+    if(state.items.length===0){
+      tbody.innerHTML = `<tr><td colspan="4" class="empty">No items yet.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = state.items.map(it=>`
+      <tr>
+        <td>${escapeHtml(it.name)}</td>
+        <td>${escapeHtml(it.unit)}</td>
+        <td>${it.reorder}</td>
+        <td><button class="secondary" data-remove-item="${it.id}">Remove</button></td>
+      </tr>
+    `).join("");
+    tbody.querySelectorAll("[data-remove-item]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        if(currentRole !== "admin"){
+          alert("Only an Super Admin can remove items.");
+          return;
+        }
+        const id = btn.getAttribute("data-remove-item");
+        state.items = state.items.filter(it=>it.id!==id);
+        await saveState();
+        renderAll();
+      });
+    });
+  }
+
+  function renderItemSelects(){
+    const opts = `<option value="" disabled selected>Select item…</option>` +
+      state.items.map(it=>`<option value="${escapeHtml(it.name)}">${escapeHtml(it.name)} (${escapeHtml(it.unit)})</option>`).join("");
+    const inSel = document.getElementById("in-item");
+    const outSel = document.getElementById("out-item");
+    const inCurrent = inSel.value;
+    const outCurrent = outSel.value;
+    inSel.innerHTML = opts;
+    outSel.innerHTML = opts;
+    if(state.items.some(it=>it.name===inCurrent)) inSel.value = inCurrent;
+    if(state.items.some(it=>it.name===outCurrent)) outSel.value = outCurrent;
+  }
+
+  function renderStockInTable(){
+    const tbody = document.querySelector("#stockin-table tbody");
+    const rows = [...state.stockIn].sort((a,b)=> (b.date||"").localeCompare(a.date||"")).slice(0,50);
+    if(rows.length===0){
+      tbody.innerHTML = `<tr><td colspan="6" class="empty">No deliveries logged yet.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(r=>`
+      <tr>
+        <td>${escapeHtml(r.date||"")}</td>
+        <td>${escapeHtml(r.item||"")}</td>
+        <td>${escapeHtml(String(r.qty||""))}</td>
+        <td>${escapeHtml(r.supplier||"")}</td>
+        <td>${escapeHtml(r.by||"")}</td>
+        <td>${escapeHtml(r.notes||"")}</td>
+      </tr>
+    `).join("");
+  }
+
+  function renderStockOutTable(){
+    const tbody = document.querySelector("#stockout-table tbody");
+    const rows = [...state.stockOut].sort((a,b)=> (b.date||"").localeCompare(a.date||"")).slice(0,50);
+    if(rows.length===0){
+      tbody.innerHTML = `<tr><td colspan="6" class="empty">No issues logged yet.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(r=>`
+      <tr>
+        <td>${escapeHtml(r.date||"")}</td>
+        <td>${escapeHtml(r.item||"")}</td>
+        <td>${escapeHtml(String(r.qty||""))}</td>
+        <td>${escapeHtml(r.to||"")}</td>
+        <td>${escapeHtml(r.by||"")}</td>
+        <td>${escapeHtml(r.notes||"")}</td>
+      </tr>
+    `).join("");
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, m=>({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[m]));
+  }
+
+  function showStatus(elId, msg, isError){
+    const el = document.getElementById(elId);
+    el.textContent = msg;
+    el.classList.toggle("error", !!isError);
+    if(!isError){
+      setTimeout(()=>{ if(el.textContent===msg) el.textContent=""; }, 2500);
+    }
+  }
+
+  // ---------- Excel reports ----------
+  function exportAllReports(){
+    if(typeof XLSX === "undefined"){
+      showStatus("report-status","Excel library could not be loaded. Check your internet connection and try again.",true);
+      return;
+    }
+    try{
+      const wb = XLSX.utils.book_new();
+      const now = new Date();
+      const reportDate = now.toLocaleString();
+
+      const summary = [
+        ["ST EDWARD HIGH SCHOOL LUBAGA — FOOD STORE REPORT"],
+        ["Report generated", reportDate],
+        ["Signed-in user", auth.currentUser ? auth.currentUser.email : ""],
+        ["Role", currentRole === "admin" ? "Super Admin" : (currentRole === "staff" ? "Staff" : "Viewer")],
+        [],
+        ["Metric","Value"],
+        ["Total items", state.items.length],
+        ["Total stock-in transactions", state.stockIn.length],
+        ["Total stock-out transactions", state.stockOut.length],
+        ["Total stock received", state.stockIn.reduce((sum,r)=>sum+Number(r.qty||0),0)],
+        ["Total stock issued", state.stockOut.reduce((sum,r)=>sum+Number(r.qty||0),0)],
+        ["Items needing restocking", state.items.filter(it=>balanceFor(it.name).balance<=Number(it.reorder)).length]
+      ];
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summary),"Summary");
+
+      const inventory = [["Item","Unit","Reorder Level","Total In","Total Out","Current Balance","Status"]];
+      state.items.forEach(it=>{
+        const b=balanceFor(it.name);
+        inventory.push([it.name,it.unit,Number(it.reorder||0),b.inTotal,b.outTotal,b.balance,b.balance<=Number(it.reorder||0)?"REORDER":"OK"]);
+      });
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(inventory),"Inventory");
+
+      const stockIn = [["ID","Date","Item","Quantity","Supplier","Received By","Notes"]];
+      state.stockIn.forEach(r=>stockIn.push([r.id||"",r.date||"",r.item||"",Number(r.qty||0),r.supplier||"",r.by||"",r.notes||""]));
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(stockIn),"Stock In");
+
+      const stockOut = [["ID","Date","Item","Quantity","Issued To","Issued By","Notes"]];
+      state.stockOut.forEach(r=>stockOut.push([r.id||"",r.date||"",r.item||"",Number(r.qty||0),r.to||"",r.by||"",r.notes||""]));
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(stockOut),"Stock Out");
+
+      const users = [["Email","Role"]];
+      if(auth.currentUser){ users.push([auth.currentUser.email,currentRole === "admin" ? "Super Admin" : (currentRole === "staff" ? "Staff" : "Viewer")]); }
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(users),"Users");
+
+      const filename = "St-Edward-Food-Store-Report-" + new Date().toISOString().slice(0,10) + ".xlsx";
+      XLSX.writeFile(wb,filename);
+      showStatus("report-status","Excel report exported successfully.");
+    }catch(err){
+      console.error("Excel export failed:",err);
+      showStatus("report-status","Could not create the Excel report.",true);
+    }
+  }
+
+  // ---------- Form handlers ----------
+  document.getElementById("item-form").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    if(currentRole !== "admin" && currentRole !== "staff"){
+      showStatus("item-status","Only Super Admins and staffs can add items.",true);
+      return;
+    }
+    const name = document.getElementById("item-name").value.trim();
+    const unit = document.getElementById("item-unit").value.trim();
+    const reorder = document.getElementById("item-reorder").value;
+    if(!name || !unit || reorder===""){
+      showStatus("item-status","Fill in all fields.", true);
+      return;
+    }
+    if(state.items.some(it=>it.name.toLowerCase()===name.toLowerCase())){
+      showStatus("item-status","That item already exists.", true);
+      return;
+    }
+    state.items.push({ id: cryptoId(), name, unit, reorder: Number(reorder) });
+    await saveState();
+    renderAll();
+    e.target.reset();
+    showStatus("item-status","Item added.");
+  });
+
+  document.getElementById("stockin-form").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    if(currentRole !== "admin" && currentRole !== "staff"){
+      showStatus("stockin-status","Only Super Admins and staffs can record stock in.",true);
+      return;
+    }
+    const date = document.getElementById("in-date").value;
+    const item = document.getElementById("in-item").value;
+    const qty = document.getElementById("in-qty").value;
+    if(!date || !item || qty===""){
+      showStatus("stockin-status","Fill in date, item and quantity.", true);
+      return;
+    }
+    state.stockIn.push({
+      id: cryptoId(),
+      date, item, qty: Number(qty),
+      supplier: document.getElementById("in-supplier").value.trim(),
+      by: document.getElementById("in-by").value.trim(),
+      notes: document.getElementById("in-notes").value.trim()
+    });
+    await saveState();
+    renderAll();
+    e.target.reset();
+    showStatus("stockin-status","Delivery saved.");
+  });
+
+  document.getElementById("stockout-form").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    if(currentRole !== "admin" && currentRole !== "staff"){
+      showStatus("stockout-status","Only Super Admins and staffs can record stock out.",true);
+      return;
+    }
+    const date = document.getElementById("out-date").value;
+    const item = document.getElementById("out-item").value;
+    const qty = document.getElementById("out-qty").value;
+    if(!date || !item || qty===""){
+      showStatus("stockout-status","Fill in date, item and quantity.", true);
+      return;
+    }
+    state.stockOut.push({
+      id: cryptoId(),
+      date, item, qty: Number(qty),
+      to: document.getElementById("out-to").value.trim(),
+      by: document.getElementById("out-by").value.trim(),
+      notes: document.getElementById("out-notes").value.trim()
+    });
+    await saveState();
+    renderAll();
+    e.target.reset();
+    showStatus("stockout-status","Issue saved.");
+  });
+
+  // default dates to today
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById("in-date").value = today;
+  document.getElementById("out-date").value = today;
+
+  document.getElementById("export-excel-btn").addEventListener("click", exportAllReports);
+
+  // ---------- Authentication ----------
+  const loginScreen = document.getElementById("login-screen");
+  const appContent = document.getElementById("app-content");
+
+  auth.onAuthStateChanged(async (user)=>{
+    if(user){
+      await loadCurrentRole(user);
+      loginScreen.style.display = "none";
+      appContent.style.display = "block";
+      applyPermissions();
+      await loadState();
+      applyPermissions();
+    } else {
+      currentRole = "viewer";
+      loginScreen.style.display = "flex";
+      appContent.style.display = "none";
+      document.getElementById("users-tab").style.display = "none";
+    }
+  });
+
+  document.getElementById("login-form").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+    const statusEl = document.getElementById("login-status");
+    statusEl.textContent = "";
+    try{
+      await auth.signInWithEmailAndPassword(email, password);
+    }catch(err){
+      statusEl.textContent = "Sign-in failed — check your email and password.";
+    }
+  });
+
+  // ---------- Admin user creation ----------
+  document.getElementById("user-form").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+
+    if(currentRole !== "admin"){
+      showStatus("user-status","Only Super Admins can create users.",true);
+      return;
+    }
+
+    const email = document.getElementById("user-email").value.trim();
+    const password = document.getElementById("user-password").value;
+    const role = document.getElementById("user-role").value;
+
+    // Firebase client SDK cannot safely create another account without changing
+    // the currently signed-in user's session. Therefore this UI intentionally
+    // directs production user creation to Firebase Console / Admin SDK.
+    showStatus(
+      "user-status",
+      "For secure production setup, create the account in Firebase Authentication, then add users/{UID} with the selected role.",
+      true
+    );
+  });
+
+  // ---------- Password reset ----------
+  document.getElementById("forgot-password-btn").addEventListener("click", async ()=>{
+    const email = document.getElementById("login-email").value.trim();
+    const statusEl = document.getElementById("login-status");
+
+    if(!email){
+      statusEl.textContent = "Enter your email address first.";
+      return;
+    }
+
+    try{
+      await auth.sendPasswordResetEmail(email);
+      statusEl.classList.remove("error");
+      statusEl.textContent = "Password reset email sent. Check your inbox.";
+    }catch(err){
+      statusEl.classList.add("error");
+      statusEl.textContent = "Could not send reset email. Check the email address.";
+    }
+  });
+
+  document.getElementById("signout-btn").addEventListener("click", async ()=>{
+    try{
+      await auth.signOut();
+    }catch(err){
+      console.error("Sign out failed:", err);
+    }
+  });
+})();
+
+</script>
+</body>
+</html>
