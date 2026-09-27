@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#24402F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Food Store">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>St Edward Lubaga — Food Store Stock Register</title>
+<link rel="stylesheet" href="styles.css?v=5">
+
+<!-- Firebase (shared live storage) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+
+<!-- ============================ LOGIN ============================ -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="eyebrow">Food Store</div>
+    <h1>St Edward High School Lubaga</h1>
+    <div class="sub">Sign in to access the stock register</div>
+    <form id="login-form">
+      <div>
+        <label for="login-email">Email</label>
+        <input id="login-email" type="email" required autocomplete="username">
+      </div>
+      <div>
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" required autocomplete="current-password">
+      </div>
+      <div><button type="submit">Sign in</button></div>
+      <div class="login-forgot">
+        <button type="button" id="forgot-password-btn" class="link-btn">Forgot password?</button>
+      </div>
+      <div class="status-msg error" id="login-status"></div>
+    </form>
+    <div class="login-hint">Don't have an account? Ask your IT technician to create one for you.</div>
+  </div>
+</div>
+
+<!-- ============================ APP ============================ -->
+<div class="app-shell" id="app-content" style="display:none;">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="eyebrow">Food Store</div>
+      <h1>St Edward High School Lubaga</h1>
+    </div>
+    <div class="right">
+      <div id="current-user-top" class="user-chip"></div>
+      <button class="secondary" id="signout-btn" type="button">Sign out</button>
+    </div>
+  </header>
+
+  <!-- HORIZONTAL TABS -->
+  <nav class="tabs" id="main-tabs">
+    <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="items">Items</button>
+    <button class="tab" data-tab="stockin">Stock In</button>
+    <button class="tab" data-tab="stockout">Stock Out</button>
+    <button class="tab" data-tab="reports">Reports</button>
+    <button class="tab" data-tab="suppliers">Suppliers</button>
+    <button class="tab" data-tab="approvals">Approvals</button>
+    <button class="tab" data-tab="users" style="display:none">Users</button>
+    <button class="tab" data-tab="audit" style="display:none">Audit Log</button>
+    <button class="tab" data-tab="account">My Account</button>
+  </nav>
+
+  <!-- CONTENT -->
+  <main class="app">
+    <div class="note" id="shared-note">Connected to the school's live Firestore database.</div>
+
+    <!-- ================= DASHBOARD ================= -->
+    <section class="panel active" id="panel-dashboard">
+      <div class="summary-strip" id="summary-strip"></div>
+
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h2>Current stock balance</h2>
+            <div class="hint">Balances = Stock In − Stock Out.</div>
+          </div>
+          <button type="button" id="refresh-btn" class="secondary">Refresh</button>
+        </div>
+        <div class="filterbar">
+          <input id="dashboard-search" placeholder="Search items…">
+          <select id="dashboard-status">
+            <option value="all">All statuses</option>
+            <option value="low">Needs restocking</option>
+            <option value="ok">OK</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table id="balance-table">
+            <thead><tr><th>Item</th><th>Category</th><th>Unit</th><th>In</th><th>Out</th><th>Balance</th><th>Reorder</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h2>Stock levels by item</h2>
+            <div class="hint">Current balance (Stock In − Stock Out) for each item.</div>
+          </div>
+          <button type="button" id="notify-btn" class="secondary">Enable low-stock notifications</button>
+        </div>
+        <div class="chart-box"><canvas id="stock-balance-chart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>Quick actions</h2>
+        <div class="quick-grid">
+          <button type="button" data-go="stockin">Record Stock In</button>
+          <button type="button" data-go="stockout">Record Stock Out</button>
+          <button type="button" data-go="reports">Open Reports</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= ITEMS ================= -->
+    <section class="panel" id="panel-items">
+      <div class="card">
+        <h2 id="item-form-title">Add / update an item</h2>
+        <div class="hint">Add food-store items with reorder level and category.</div>
+        <form id="item-form">
+          <input type="hidden" id="item-id">
+          <div class="row3">
+            <div><label>Item name</label><input id="item-name" required placeholder="e.g. Rice"></div>
+            <div><label>Unit</label><input id="item-unit" required placeholder="kg, litre, bag"></div>
+            <div><label>Category</label><input id="item-category" placeholder="Cereals, Oil, Sugar…"></div>
+          </div>
+          <div class="row2">
+            <div><label>Reorder level</label><input id="item-reorder" type="number" min="0" step="any" required></div>
+            <div><label>Bulk import items</label><input id="bulk-file" type="file" accept=".csv,.xlsx,.xls"></div>
+          </div>
+          <div>
+            <button type="submit" id="item-save-btn">Save item</button>
+            <button type="button" class="secondary" id="item-cancel-btn" style="display:none">Cancel edit</button>
+            <button type="button" class="secondary" id="bulk-import-btn">Import CSV / Excel</button>
+            <span class="hint">Columns: Item, Unit, Category, Reorder</span>
+          </div>
+          <div class="status-msg" id="item-status"></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="section-head">
+          <h2>Items</h2>
+          <input id="items-search" class="small-search" placeholder="Search items…">
+        </div>
+        <div class="table-wrap">
+          <table id="items-table">
+            <thead><tr><th>Item</th><th>Category</th><th>Unit</th><th>Reorder</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= STOCK IN ================= -->
+    <section class="panel" id="panel-stockin">
+      <div class="card">
+        <h2 id="in-form-title">Record Stock In</h2>
+        <div class="hint">Record every delivery or purchase received.</div>
+        <form id="stockin-form">
+          <input type="hidden" id="in-id">
+          <div class="row2">
+            <div><label>Date</label><input id="in-date" type="date" required></div>
+            <div><label>Item</label><select id="in-item" required></select></div>
+          </div>
+          <div class="row3">
+            <div><label>Quantity received</label><input id="in-qty" type="number" min="0.01" step="any" required></div>
+            <div><label>Supplier</label><select id="in-supplier"><option value="">Select supplier…</option></select></div>
+            <div><label>Received by</label><input id="in-by" placeholder="Storekeeper"></div>
+          </div>
+          <div class="row2">
+            <div><label>Batch / lot no.</label><input id="in-batch" placeholder="Optional batch reference"></div>
+            <div><label>Expiry date</label><input id="in-expiry" type="date"></div>
+          </div>
+          <div><label>Notes</label><input id="in-notes" placeholder="Invoice/reference or other note"></div>
+          <div>
+            <button type="submit" id="in-save-btn">Save Stock In</button>
+            <button type="button" class="secondary" id="in-cancel-btn" style="display:none">Cancel edit</button>
+          </div>
+          <div class="status-msg" id="stockin-status"></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="section-head">
+          <h2>Stock In history</h2>
+          <div class="filterbar compact">
+            <input id="in-search" placeholder="Search…">
+            <input id="in-from" type="date" title="From">
+            <input id="in-to" type="date" title="To">
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="stockin-table">
+            <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Supplier</th><th>Batch</th><th>Expiry</th><th>Received By</th><th>Notes</th><th>Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= STOCK OUT ================= -->
+    <section class="panel" id="panel-stockout">
+      <div class="card">
+        <h2 id="out-form-title">Record Stock Out</h2>
+        <div class="hint">Stock Out cannot exceed the available balance.</div>
+        <form id="stockout-form">
+          <input type="hidden" id="out-id">
+          <div class="row2">
+            <div><label>Date</label><input id="out-date" type="date" required></div>
+            <div><label>Item</label><select id="out-item" required></select></div>
+          </div>
+          <div class="row3">
+            <div><label>Quantity issued</label><input id="out-qty" type="number" min="0.01" step="any" required></div>
+            <div><label>Issued to</label><input id="out-to" placeholder="Kitchen / Department"></div>
+            <div><label>Issued by</label><input id="out-by" placeholder="Storekeeper"></div>
+          </div>
+          <div><label>Notes</label><input id="out-notes" placeholder="Purpose/reference"></div>
+          <div>
+            <button type="submit" id="out-save-btn">Save Stock Out</button>
+            <button type="button" class="secondary" id="out-cancel-btn" style="display:none">Cancel edit</button>
+          </div>
+          <div class="status-msg" id="stockout-status"></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="section-head">
+          <h2>Stock Out history</h2>
+          <div class="filterbar compact">
+            <input id="out-search" placeholder="Search…">
+            <input id="out-from" type="date" title="From">
+            <input id="out-to-date" type="date" title="To">
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="stockout-table">
+            <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Issued To</th><th>Issued By</th><th>Notes</th><th>Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= REPORTS ================= -->
+    <section class="panel" id="panel-reports">
+      <div class="card">
+        <h2>Reports</h2>
+        <div class="hint">Choose a period and export the live records. Excel includes detailed sheets; Print creates a PDF-ready report.</div>
+        <div class="row3">
+          <div><label>From</label><input id="report-from" type="date"></div>
+          <div><label>To</label><input id="report-to" type="date"></div>
+          <div>
+            <label>Report type</label>
+            <select id="report-type">
+              <option value="all">All reports</option>
+              <option value="inventory">Inventory</option>
+              <option value="stockin">Stock In</option>
+              <option value="stockout">Stock Out</option>
+              <option value="monthly">Monthly Summary</option>
+              <option value="category">Category Breakdown</option>
+            </select>
+          </div>
+        </div>
+        <div class="button-row">
+          <button type="button" id="export-excel-btn">Export Excel</button>
+          <button type="button" id="download-pdf-btn">Download PDF</button>
+          <button type="button" class="secondary" id="print-report-btn">Print report</button>
+        </div>
+        <div class="status-msg" id="report-status"></div>
+        <hr class="hr">
+        <div class="row3">
+          <div><label>Monthly report email</label><input id="report-email" type="email" placeholder="bursar@example.com"></div>
+          <div><label>Low-stock alert email</label><input id="low-stock-email" type="email" placeholder="store@example.com"></div>
+          <div><label>Day of month to send</label><input id="report-day" type="number" min="1" max="28" value="1"></div>
+        </div>
+        <button type="button" class="secondary" id="save-report-settings">Save scheduled report settings</button>
+      </div>
+
+      <div class="card" id="report-preview">
+        <h2>Report preview</h2>
+        <div class="hint">This preview updates with the selected period.</div>
+        <div id="report-preview-content"></div>
+      </div>
+    </section>
+
+    <!-- ================= SUPPLIERS ================= -->
+    <section class="panel" id="panel-suppliers">
+      <div class="card">
+        <h2>Supplier records</h2>
+        <div class="hint">Keep supplier contacts and use them consistently on Stock In records.</div>
+        <form id="supplier-form">
+          <input type="hidden" id="supplier-id">
+          <div class="row3">
+            <div><label>Supplier name</label><input id="supplier-name" required></div>
+            <div><label>Phone</label><input id="supplier-phone"></div>
+            <div><label>Email</label><input id="supplier-email" type="email"></div>
+          </div>
+          <div><label>Address / notes</label><input id="supplier-notes"></div>
+          <button type="submit">Save supplier</button>
+          <div class="status-msg" id="supplier-status"></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Suppliers</h2>
+        <div class="table-wrap">
+          <table id="suppliers-table">
+            <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Stock In records</th><th>Total quantity</th><th>Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= APPROVALS ================= -->
+    <section class="panel" id="panel-approvals">
+      <div class="card">
+        <h2>Stock Out approvals</h2>
+        <div class="hint">Large Stock Out requests require approval by a different Staff/Super Admin user.</div>
+        <div class="row2">
+          <div><label>Approval threshold (quantity)</label><input id="approval-threshold" type="number" min="0" step="any" value="100"></div>
+          <div class="align-end"><button type="button" id="save-threshold" class="secondary">Save threshold</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table id="approvals-table">
+            <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Requested By</th><th>Issued To</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= USERS ================= -->
+    <section class="panel" id="panel-users">
+      <div class="card">
+        <h2>User management</h2>
+        <div class="hint">Super Admin only. New users receive a verification email. Passwords are managed by Firebase Authentication.</div>
+        <form id="user-form">
+          <div class="row2">
+            <div><label>User name</label><input id="user-name" placeholder="Full name" required></div>
+            <div><label>User email</label><input id="user-email" type="email" required placeholder="staff@example.com"></div>
+          </div>
+          <div class="row2">
+            <div><label>Temporary password</label><input id="user-password" type="password" minlength="6" required placeholder="At least 6 characters"></div>
+            <div>
+              <label>Role</label>
+              <select id="user-role">
+                <option value="staff">Staff</option>
+                <option value="viewer">Viewer</option>
+                <option value="admin">Super Admin</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit">Create user</button>
+          <div class="status-msg" id="user-status"></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Registered users</h2>
+        <div class="filterbar"><input id="users-search" placeholder="Search users…"></div>
+        <div class="table-wrap">
+          <table id="users-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Date Created</th><th>Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="status-msg" id="users-list-status"></div>
+      </div>
+    </section>
+
+    <!-- ================= AUDIT ================= -->
+    <section class="panel" id="panel-audit">
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h2>Audit Log</h2>
+            <div class="hint">Records important actions for accountability.</div>
+          </div>
+          <input id="audit-search" class="small-search" placeholder="Search audit log…">
+        </div>
+        <div class="table-wrap">
+          <table id="audit-table">
+            <thead><tr><th>Date/Time</th><th>User</th><th>Role</th><th>Action</th><th>Details</th><th>Before</th><th>After</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= ACCOUNT ================= -->
+    <section class="panel" id="panel-account">
+      <div class="card">
+        <div class="section-head">
+          <h2>My Account</h2>
+          <button type="button" class="secondary" id="dark-toggle">Toggle dark mode</button>
+        </div>
+        <div id="account-info" class="account-box"></div>
+      </div>
+      <div class="card">
+        <h2>Change my password</h2>
+        <div class="hint">Firebase may require a recent sign-in before allowing a password change.</div>
+        <form id="change-password-form">
+          <div class="row2">
+            <div><label>New password</label><input id="new-password" type="password" minlength="6" required></div>
+            <div><label>Confirm new password</label><input id="confirm-password" type="password" minlength="6" required></div>
+          </div>
+          <button type="submit">Change password</button>
+          <div class="status-msg" id="password-status"></div>
+        </form>
+      </div>
+    </section>
+
+    <footer class="footer">© 2026 Marvin Marvel. All rights reserved.</footer>
+  </main>
+</div>
+
+<!-- ============================ PWA ============================ -->
+<div id="pwa-install">
+  <strong>📱 Install Food Store</strong>
+  <div>Add Food Store to this phone for quick access like an app.</div>
+  <button id="install-app-btn">Install</button>
+  <button id="dismiss-install-btn" class="secondary">Not now</button>
+</div>
+
+<script src="app.js?v=5"></script>
+<script>
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;const box=document.getElementById('pwa-install');if(box)box.style.display='block';});
+window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const box=document.getElementById('pwa-install');if(box)box.style.display='none';});
+document.addEventListener('click',async e=>{if(e.target.id==='install-app-btn'&&deferredInstallPrompt){deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;document.getElementById('pwa-install').style.display='none';}if(e.target.id==='dismiss-install-btn'){document.getElementById('pwa-install').style.display='none';}});
+</script>
+</body>
+</html>
